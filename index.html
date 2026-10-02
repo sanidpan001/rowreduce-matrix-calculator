@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RowReduce — Matrix Calculator with Steps | Gauss-Jordan Elimination Solver</title>
+<meta name="description" content="RowReduce is a free matrix calculator with steps: exact-fraction Gauss-Jordan elimination, row echelon form, inverse, determinant and rank — plus an interactive practice mode that teaches you each row operation.">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background-color: #FFFFFF;
+    background-image:
+      linear-gradient(rgba(29,78,216,0.055) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(29,78,216,0.055) 1px, transparent 1px),
+      linear-gradient(rgba(29,78,216,0.11) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(29,78,216,0.11) 1px, transparent 1px);
+    background-size: 24px 24px, 24px 24px, 120px 120px, 120px 120px;
+  }
+  .hand { font-family: 'Caveat', cursive; }
+  .paper-card {
+    background: #FFFFFF;
+    border: 2px solid #1D4ED8;
+    border-radius: 14px;
+    box-shadow: 6px 6px 0 rgba(29,78,216,0.15);
+  }
+  .notebook-step {
+    background: #FFFFFF;
+    border: 1.5px solid #dbe3f5;
+    border-left: 5px solid #DC2626;
+    border-radius: 10px;
+    position: relative;
+  }
+  .frac { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; font-size: .82em; line-height: 1.15; margin: 0 3px; }
+  .frac > span:first-child { border-bottom: 1.5px solid currentColor; padding: 0 5px; }
+  .frac > span:last-child { padding: 0 5px; }
+  .matrix-wrap { display: inline-block; border-left: 3px solid #1D4ED8; border-right: 3px solid #1D4ED8; border-radius: 12px; padding: 8px 12px; background: #f8faff; }
+  .matrix-wrap table { border-collapse: collapse; }
+  .matrix-wrap td { padding: 6px 10px; text-align: center; font-variant-numeric: tabular-nums; font-weight: 600; color: #1e293b; }
+  .cell-input {
+    width: 3.4rem; height: 3.4rem; text-align: center; font-weight: 700; font-size: 1.05rem;
+    border: 2px solid #c7d5f2; border-radius: 10px; background: #fff; color: #1e293b;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .cell-input:focus { outline: none; border-color: #1D4ED8; box-shadow: 0 0 0 3px rgba(29,78,216,.18); }
+  .tab-btn { transition: all .15s; }
+  .tab-btn.active { background: #1D4ED8; color: #fff; border-color: #1D4ED8; }
+  .tape { background: rgba(220,38,38,.12); border: 1px dashed rgba(220,38,38,.5); }
+  @media (max-width: 420px) { .cell-input { width: 2.9rem; height: 2.9rem; font-size: .95rem; } }
+  @media print { .no-print { display: none !important; } }
+</style>
+</head>
+<body id="top" class="text-slate-800">
+
+<!-- Sticky header -->
+<header class="sticky top-0 z-50 bg-white/95 backdrop-blur border-b-2 border-[#1D4ED8]">
+  <div class="mx-auto max-w-6xl px-4 sm:px-6 h-16 flex items-center justify-between">
+    <a href="#top" class="flex items-center gap-2">
+      <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-[#1D4ED8] text-white font-extrabold text-lg">R</span>
+      <span class="text-xl font-extrabold tracking-tight text-[#1D4ED8]">RowReduce</span>
+    </a>
+    <nav class="flex items-center gap-4 sm:gap-6 text-sm font-semibold">
+      <a href="#top" class="text-slate-600 hover:text-[#1D4ED8]">Home</a>
+      <a href="https://fixoraa.tech" class="text-slate-600 hover:text-[#1D4ED8]">More Tools</a>
+    </nav>
+  </div>
+</header>
+
+<!-- TOP AD (verbatim) -->
+<div class="no-print mx-auto max-w-6xl px-4 sm:px-6 pt-4" role="complementary" aria-label="Advertisement">
+  <div class="mx-auto text-center" style="max-width:728px">
+    <span class="block text-[10px] tracking-[0.18em] uppercase text-slate-400 mb-1.5">Advertisement</span>
+    <div class="flex justify-center overflow-hidden">
+      <div class="origin-top scale-[0.44] sm:scale-100 shrink-0">
+        <script>
+          atOptions = { 'key' : '4e68ac77881c17fe128a46565d9a4e8c', 'format' : 'iframe', 'height' : 90, 'width' : 728, 'params' : {} };
+        </script>
+        <script src="https://www.highrevenueformat.com/4e68ac77881c17fe128a46565d9a4e8c/invoke.js"></script>
+      </div>
+    </div>
+  </div>
+</div>
+
+<main class="mx-auto max-w-6xl px-4 sm:px-6 py-8">
+
+  <!-- Hero -->
+  <div class="text-center mb-6">
+    <h1 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">Matrix Calculator <span class="text-[#DC2626]">with Steps</span></h1>
+    <p class="hand text-2xl text-[#1D4ED8] mt-2">every row operation, shown &amp; explained — no black boxes!</p>
+    <div class="mt-3 inline-flex items-center gap-2">
+      <span class="inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1.5 rounded-full border border-emerald-300">
+        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.7-9.3a1 1 0 00-1.4-1.4L9 10.6 7.7 9.3a1 1 0 00-1.4 1.4l2 2a1 1 0 001.4 0l4-4z" clip-rule="evenodd"/></svg>
+        Unlimited Free Usage
+      </span>
+      <span class="text-xs text-slate-500">No signup · No paywall · No watermark</span>
+    </div>
+  </div>
+
+  <!-- Tool card -->
+  <section class="paper-card p-4 sm:p-8" aria-label="Matrix calculator tool">
+    <!-- Mode tabs -->
+    <div class="flex flex-wrap gap-2 mb-6 justify-center" role="tablist" aria-label="Calculator mode">
+      <button data-mode="rref" class="tab-btn active text-sm font-bold px-4 py-2 rounded-full border-2 border-[#1D4ED8] text-[#1D4ED8]">RREF Solver</button>
+      <button data-mode="inverse" class="tab-btn text-sm font-bold px-4 py-2 rounded-full border-2 border-[#1D4ED8] text-[#1D4ED8]">Inverse A⁻¹</button>
+      <button data-mode="detrank" class="tab-btn text-sm font-bold px-4 py-2 rounded-full border-2 border-[#1D4ED8] text-[#1D4ED8]">Determinant &amp; Rank</button>
+      <button data-mode="practice" class="tab-btn text-sm font-bold px-4 py-2 rounded-full border-2 border-[#DC2626] text-[#DC2626]">✏️ Practice Mode</button>
+    </div>
+
+    <!-- Matrix input -->
+    <div class="flex flex-col items-center gap-4">
+      <div class="flex flex-wrap items-center justify-center gap-3">
+        <label class="text-sm font-semibold text-slate-600">Size:</label>
+        <div class="flex gap-1.5" id="sizeBtns">
+          <button data-size="2" class="size-btn text-sm font-bold px-3 py-1.5 rounded-lg border-2 border-slate-300 text-slate-500">2×2</button>
+          <button data-size="3" class="size-btn text-sm font-bold px-3 py-1.5 rounded-lg border-2 border-[#1D4ED8] bg-[#1D4ED8] text-white">3×3</button>
+          <button data-size="4" class="size-btn text-sm font-bold px-3 py-1.5 rounded-lg border-2 border-slate-300 text-slate-500">4×4</button>
+        </div>
+        <button id="randomBtn" class="text-sm font-bold px-4 py-1.5 rounded-lg bg-[#DC2626] text-white hover:bg-red-700 transition">🎲 Random problem</button>
+        <button id="clearBtn" class="text-sm font-semibold px-3 py-1.5 rounded-lg border border-slate-300 text-slate-500 hover:text-slate-800">Clear</button>
+      </div>
+
+      <div class="tape rounded-xl px-4 py-1">
+        <p class="hand text-xl text-[#DC2626]">type numbers or fractions like 3/4, -2, 0.5 …</p>
+      </div>
+
+      <div id="grid" class="grid gap-2 justify-center" style="grid-template-columns: repeat(3, auto);"></div>
+      <p id="inputError" class="hidden text-sm font-semibold text-[#DC2626]"></p>
+
+      <div class="flex flex-wrap justify-center gap-3">
+        <button id="solveBtn" class="text-base font-extrabold px-8 py-3 rounded-xl bg-[#1D4ED8] text-white hover:bg-blue-800 transition shadow-lg">Solve with steps →</button>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div id="results" class="mt-8 hidden">
+      <div id="resultsHead" class="flex items-center justify-between flex-wrap gap-2 mb-4">
+        <h2 id="resultsTitle" class="hand text-3xl text-[#1D4ED8]"></h2>
+        <button id="copyBtn" class="no-print text-xs font-bold px-3 py-1.5 rounded-lg border-2 border-[#1D4ED8] text-[#1D4ED8] hover:bg-blue-50">Copy steps</button>
+      </div>
+      <div id="stepsList" class="flex flex-col gap-4"></div>
+      <div id="finalCards" class="grid sm:grid-cols-3 gap-4 mt-6"></div>
+    </div>
+
+    <!-- Practice mode panel -->
+    <div id="practicePanel" class="mt-8 hidden">
+      <div class="rounded-xl border-2 border-dashed border-[#DC2626] p-4 sm:p-6 bg-red-50/40">
+        <div class="flex items-center justify-between flex-wrap gap-2 mb-3">
+          <h2 class="hand text-3xl text-[#DC2626]">Practice: you do the row ops!</h2>
+          <div class="text-sm font-bold text-slate-600">Score: <span id="pScore" class="text-[#1D4ED8]">0</span> · Step <span id="pStep">0</span>/<span id="pTotal">0</span></div>
+        </div>
+        <p class="text-sm text-slate-600 mb-4">I show the matrix — <strong>you</strong> type the next row operation (e.g. <code class="bg-white px-1.5 py-0.5 rounded border font-mono text-xs">R2 -&gt; R2 - 2*R1</code>, <code class="bg-white px-1.5 py-0.5 rounded border font-mono text-xs">R1 &lt;-&gt; R3</code>). Stuck? Ask for a hint.</p>
+        <div id="pMatrix" class="flex justify-center my-4 overflow-x-auto"></div>
+        <div id="pDone" class="hidden text-center py-4">
+          <p class="hand text-4xl text-emerald-600">Solved! Beautiful row-reducing! 🎉</p>
+          <p id="pDoneScore" class="text-sm font-semibold text-slate-600 mt-2"></p>
+          <button id="pAgain" class="mt-3 text-sm font-bold px-5 py-2 rounded-xl bg-[#1D4ED8] text-white hover:bg-blue-800">New practice problem</button>
+        </div>
+        <div id="pControls" class="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center justify-center">
+          <input id="pInput" type="text" placeholder="Type a row operation, e.g. R2 -> R2 - 2*R1"
+            class="flex-1 min-w-0 px-4 py-2.5 rounded-xl border-2 border-slate-300 font-mono text-sm focus:outline-none focus:border-[#DC2626]" autocomplete="off">
+          <div class="flex gap-2 justify-center">
+            <button id="pApply" class="text-sm font-extrabold px-5 py-2.5 rounded-xl bg-[#DC2626] text-white hover:bg-red-700">Apply ✓</button>
+            <button id="pHint" class="text-sm font-bold px-4 py-2.5 rounded-xl border-2 border-amber-500 text-amber-700 hover:bg-amber-50">💡 Hint</button>
+            <button id="pReveal" class="text-sm font-semibold px-4 py-2.5 rounded-xl border border-slate-300 text-slate-500 hover:text-slate-800">Reveal</button>
+          </div>
+        </div>
+        <p id="pFeedback" class="text-center text-sm font-semibold mt-3 min-h-[1.5rem]"></p>
+        <div id="pHintBox" class="hidden mt-2 mx-auto max-w-xl rounded-xl bg-amber-50 border border-amber-300 p-3">
+          <p id="pHintText" class="hand text-xl text-amber-800"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+<!-- BOTTOM AD (verbatim) -->
+<div class="no-print mx-auto max-w-6xl px-4 sm:px-6 pb-4" role="complementary" aria-label="Advertisement">
+  <div class="mx-auto text-center" style="max-width:728px">
+    <span class="block text-[10px] tracking-[0.18em] uppercase text-slate-400 mb-1.5">Advertisement</span>
+    <div class="flex justify-center overflow-hidden">
+      <script async src="https://js.wpadmngr.com/static/adManager.js" data-admpid="464498"></script>
+    </div>
+  </div>
+</div>
+
+  <!-- SEO ARTICLE -->
+  <!-- ARTICLE-START -->
+  <article class="paper-card p-6 sm:p-10 mt-4 prose max-w-none">
+    <h2 class="text-2xl font-extrabold text-slate-900 mb-4">Matrix Calculator with Steps: Master Gauss-Jordan Elimination</h2>
+    <p class="mb-4 text-slate-700 leading-relaxed">A <strong>matrix calculator with steps</strong> does far more than spit out a final answer. When you are learning linear algebra — whether for a university exam, a machine-learning course, or an engineering interview — the answer alone teaches you nothing. What matters is the journey: which row did you swap, what multiple did you subtract, and why. RowReduce is built around that idea. Every computation is performed with exact fractions (so 1/3 stays 1/3 instead of becoming 0.3333333), and every single elementary row operation is displayed in plain notation like <em>R2 → R2 − 2·R1</em>, so you can follow, check, and truly understand the Gauss-Jordan elimination process from the first pivot to the final reduced matrix.</p>
+
+    <h3 class="text-xl font-bold text-slate-900 mt-8 mb-3">What Is Gauss-Jordan Elimination?</h3>
+    <p class="mb-4 text-slate-700 leading-relaxed">Gauss-Jordan elimination is a systematic algorithm for transforming any matrix into its <strong>reduced row echelon form (RREF)</strong> using only three allowed moves, called elementary row operations: (1) swap two rows, (2) multiply a row by a non-zero scalar, and (3) add a multiple of one row to another row. The procedure works in three phases. First, you move left to right across the columns, pick the first non-zero entry in each column as a <em>pivot</em> (swapping rows if the pivot position is zero), and use it to eliminate every entry <em>below</em> it. This produces row echelon form. Second, you scale each pivot row so that every pivot becomes exactly 1. Third, you work from right to left, using each pivot to eliminate the entries <em>above</em> it. When no non-zero entries remain above or below any pivot, you have reached the reduced row echelon form — and every matrix has exactly one RREF, which makes it a perfect fingerprint for the matrix.</p>
+
+    <h3 class="text-xl font-bold text-slate-900 mt-8 mb-3">Row Echelon Form vs Reduced Row Echelon Form</h3>
+    <p class="mb-4 text-slate-700 leading-relaxed">Students often confuse these two, so let us be precise. A matrix is in <strong>row echelon form (REF)</strong> when all zero rows sit at the bottom and each leading non-zero entry (pivot) of a row sits strictly to the right of the pivot in the row above it. A <strong>row echelon form calculator</strong> stops here. The <strong>reduced row echelon form (RREF)</strong> adds two stricter requirements: every pivot must equal 1, and every pivot must be the <em>only</em> non-zero entry in its column. RREF is unique; REF is not (different sequences of operations can produce different-looking echelon forms). That uniqueness is why textbooks, exams, and computer algebra systems standardize on RREF: two matrices are row-equivalent if and only if they share the same RREF. If you are solving a system of linear equations, the RREF of the augmented matrix literally reads the solution off — the variables equal the constants in the last column, with free variables clearly visible as non-pivot columns.</p>
+
+    <h3 class="text-xl font-bold text-slate-900 mt-8 mb-3">A Worked Example, Step by Step</h3>
+    <p class="mb-4 text-slate-700 leading-relaxed">Consider the matrix [[2, 1, −1], [−3, −1, 2], [−2, 1, 2]]. <strong>Step 1:</strong> the pivot in column 1 is the 2 in row 1. To clear the −3 below it, apply R2 → R2 + (3/2)·R1, giving [0, 1/2, 1/2]. To clear the −2, apply R3 → R3 + R1, giving [0, 2, 1]. <strong>Step 2:</strong> move to column 2; the pivot is 1/2 in row 2. Clear the 2 below it with R3 → R3 − 4·R2, giving [0, 0, −1]. <strong>Step 3:</strong> scale the pivots to 1: R2 → 2·R2 gives [0, 1, 1], and R3 → −1·R3 gives [0, 0, 1]. <strong>Step 4:</strong> eliminate upward — R2 → R2 − R3 gives [0, 1, 0]; then R1 → R1 + R3 and R1 → R1 − R2 clear the top row to [1, 0, 0]. The RREF is the identity matrix, which tells us the original matrix is invertible with full rank 3. Notice how every coefficient stayed an exact fraction throughout — this is exactly what RowReduce reproduces automatically, including the swap and scaling steps that most online solvers silently skip or merge together.</p>
+
+    <h3 class="text-xl font-bold text-slate-900 mt-8 mb-3">Why Exact Fractions Beat Decimals</h3>
+    <p class="mb-4 text-slate-700 leading-relaxed">Most calculators convert everything to floating-point decimals, and that quietly corrupts the mathematics. One third becomes 0.3333333333, and after several elimination steps the rounding error compounds until a pivot that should be exactly zero shows up as 0.0000001 — or worse, a determinant that should be exactly zero comes out as a tiny non-zero number, flipping a singularity verdict. RowReduce stores every entry as an exact fraction (a numerator over a denominator, always reduced by their greatest common divisor), so arithmetic is mathematically perfect at every step. Pivots that are truly zero are detected as exactly zero, determinants of singular matrices come out as exactly 0, and inverse matrices display clean fractions like −1/4 instead of −0.2500000002. For exam preparation this matters enormously: your hand-worked solutions use fractions, so a calculator that speaks fractions lets you compare step for step without translation errors.</p>
+
+    <h3 class="text-xl font-bold text-slate-900 mt-8 mb-3">Determinant, Inverse, and Rank — What They Tell You</h3>
+    <p class="mb-4 text-slate-700 leading-relaxed">RowReduce computes three deep properties alongside the RREF. The <strong>determinant</strong> is a single number that captures how the matrix scales volume: a determinant of zero means the matrix squashes space flat and is therefore <em>singular</em> — it has no inverse and the corresponding linear system either has no solution or infinitely many. A non-zero determinant guarantees a unique solution. Our determinant is computed by the same exact-fraction elimination, tracking row swaps (each swap flips the sign), so the result is exact. The <strong>inverse</strong> A⁻¹ is found by running Gauss-Jordan on the augmented matrix [A | I]; if the left half reduces to the identity, the right half is the inverse — and you can watch every step of that transformation. The <strong>rank</strong> is simply the number of pivots (non-zero rows in the RREF): it tells you the dimension of the column space, the number of linearly independent rows, and — for a system of equations — how many genuinely independent constraints you have. A 3×3 matrix with rank 2, like [[1,2,3],[4,5,6],[7,8,9]], is singular, and its RREF will visibly end in a zero row.</p>
+
+    <h3 class="text-xl font-bold text-slate-900 mt-8 mb-3">How to Use Practice Mode to Actually Learn</h3>
+    <p class="mb-4 text-slate-700 leading-relaxed">Watching steps is good; <em>doing</em> steps is better. Practice mode flips the calculator into a tutor: it generates a guaranteed-solvable random problem (or uses your own matrix), shows you the current state, and asks <em>you</em> to type the next row operation. Type operations naturally — <code>R2 -&gt; R2 - 2*R1</code>, <code>R1 &lt;-&gt; R3</code>, or <code>R2 -&gt; (1/2)*R2</code> — and the tool validates your answer with exact fraction comparison, so <code>R2 -&gt; R2 - 4/2*R1</code> is accepted as identical to <code>R2 -&gt; R2 - 2*R1</code>. If you are stuck, the hint system works in two levels: first it nudges you toward the right pivot ("use the pivot in row 1 to eliminate the entry below it in row 2"), and only then reveals the exact operation. Research on active recall consistently shows that retrieving a procedure from memory beats re-reading it, and that is precisely the loop practice mode creates: attempt, get validated, repeat until the algorithm becomes reflex. Ten minutes a day in practice mode will do more for your linear algebra exam than an hour of passively watching solved examples.</p>
+
+    <h3 class="text-xl font-bold text-slate-900 mt-8 mb-3">Common Mistakes Students Make</h3>
+    <p class="mb-4 text-slate-700 leading-relaxed">After watching thousands of row reductions, the same errors appear again and again. <strong>Mistake 1:</strong> arithmetic slips when subtracting multiples — students compute R2 − 2·R1 as [−3−4, −1−2, 2−2] = [−7, −3, 0] and then mis-add a column. Exact-fraction display makes these slips visible instantly. <strong>Mistake 2:</strong> forgetting that scaling a row scales the <em>entire</em> row, including the augmented constant column. <strong>Mistake 3:</strong> stopping at row echelon form and calling it "reduced" — if there are non-zero entries above your pivots, you are not done. <strong>Mistake 4:</strong> swapping rows but forgetting that each swap flips the sign of the determinant. <strong>Mistake 5:</strong> dividing by a pivot without checking it is non-zero first. RowReduce's step log is an excellent debugging mirror: work a problem by hand, then compare your sequence of operations against the tool's canonical sequence — any divergence is a precise pointer to the exact line where your reasoning went wrong.</p>
+
+    <h3 class="text-xl font-bold text-slate-900 mt-8 mb-3">When to Use Each Matrix Operation</h3>
+    <p class="mb-4 text-slate-700 leading-relaxed">Different problems call for different tools. <strong>Solving Ax = b?</strong> Reduce the augmented matrix [A | b] to RREF and read off the solution — this is faster and more stable than computing A⁻¹ and multiplying. <strong>Need A⁻¹ itself</strong> (for example, to solve many systems with the same A)? Use the inverse mode on [A | I]. <strong>Just checking solvability?</strong> The determinant answers in one number: zero means singular. <strong>Analyzing data or a transformation?</strong> The rank reveals the true dimensionality hiding inside redundant rows. And whenever a number looks suspicious — a fraction that will not simplify, a zero row that appears "too early" — re-run the computation in RREF mode and inspect the exact step where it happened. Because every intermediate matrix is shown, there is never a moment where you must trust the machine blindly.</p>
+
+    <p class="mb-4 text-slate-700 leading-relaxed">RowReduce runs entirely in your browser: your matrices never leave your device, there are no accounts, no usage caps, and no watermarks on anything you copy. Whether you need a quick <strong>row echelon form calculator</strong> check before an exam, a full <strong>Gauss-Jordan elimination steps</strong> walkthrough for homework, or a sparring partner in practice mode, the notebook is open and the pencil is yours.</p>
+  </article>
+  <!-- ARTICLE-END -->
+
+  <!-- FAQs -->
+  <section class="paper-card p-6 sm:p-10 mt-6">
+    <h2 class="text-2xl font-extrabold text-slate-900 mb-6">Frequently Asked Questions</h2>
+    <div class="flex flex-col gap-5">
+      <div class="faq-q border-b border-slate-200 pb-4">
+        <h3 class="font-bold text-slate-900 mb-1">What is a matrix calculator with steps?</h3>
+        <p class="text-slate-700 text-sm leading-relaxed">It is a calculator that does not just give you the final reduced matrix — it shows every elementary row operation (swaps, scalings, and row additions) in order, so you can follow the Gauss-Jordan elimination exactly as you would do it by hand. RowReduce goes further by using exact fractions, so no rounding error ever creeps into the steps.</p>
+      </div>
+      <div class="faq-q border-b border-slate-200 pb-4">
+        <h3 class="font-bold text-slate-900 mb-1">What is the difference between row echelon form and reduced row echelon form?</h3>
+        <p class="text-slate-700 text-sm leading-relaxed">In row echelon form, each pivot sits to the right of the pivot above it and zero rows are at the bottom. Reduced row echelon form additionally requires every pivot to be 1 and to be the only non-zero entry in its column. RREF is unique for every matrix; plain echelon form is not.</p>
+      </div>
+      <div class="faq-q border-b border-slate-200 pb-4">
+        <h3 class="font-bold text-slate-900 mb-1">How does Gauss-Jordan elimination work?</h3>
+        <p class="text-slate-700 text-sm leading-relaxed">You pick pivots column by column from left to right, use each pivot to zero out all entries below it (forward elimination), scale every pivot row so the pivot becomes 1, then use each pivot to zero out all entries above it (backward elimination). The three allowed moves are swapping two rows, multiplying a row by a non-zero number, and adding a multiple of one row to another.</p>
+      </div>
+      <div class="faq-q border-b border-slate-200 pb-4">
+        <h3 class="font-bold text-slate-900 mb-1">Why does RowReduce use exact fractions instead of decimals?</h3>
+        <p class="text-slate-700 text-sm leading-relaxed">Floating-point decimals introduce rounding error: 1/3 becomes 0.3333333, and after several steps a pivot that should be exactly zero can appear as 0.0000001. Exact fractions keep every computation mathematically perfect, so singular matrices are detected as exactly singular and inverses display clean fractions like 3/4.</p>
+      </div>
+      <div class="faq-q border-b border-slate-200 pb-4">
+        <h3 class="font-bold text-slate-900 mb-1">When does a matrix have no inverse?</h3>
+        <p class="text-slate-700 text-sm leading-relaxed">A square matrix has no inverse exactly when its determinant is zero — that is, when it is singular. In RREF terms, this shows up as a zero row (rank less than the size of the matrix). RowReduce detects this automatically and tells you the matrix is singular instead of showing a bogus inverse.</p>
+      </div>
+      <div class="faq-q pb-1">
+        <h3 class="font-bold text-slate-900 mb-1">What does the rank of a matrix tell me?</h3>
+        <p class="text-slate-700 text-sm leading-relaxed">The rank is the number of pivots — the count of linearly independent rows (or columns). It tells you the dimension of the space the matrix maps onto, and for a system of equations it tells you how many independent constraints you really have. A 3×3 system with rank 2, for example, cannot have a unique solution.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="border-t-2 border-[#1D4ED8] mt-8">
+  <div class="mx-auto max-w-6xl px-4 sm:px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-slate-500">
+    <span class="font-bold text-[#1D4ED8]">RowReduce</span>
+    <span>Free matrix tools for students everywhere. Your matrices never leave your browser.</span>
+    <a href="https://fixoraa.tech" class="font-semibold hover:text-[#1D4ED8]">More Tools</a>
+  </div>
+</footer>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {"@type": "Question", "name": "What is a matrix calculator with steps?", "acceptedAnswer": {"@type": "Answer", "text": "It is a calculator that shows every elementary row operation (swaps, scalings, and row additions) in order, so you can follow Gauss-Jordan elimination exactly as you would do it by hand, using exact fractions with no rounding error."}},
+    {"@type": "Question", "name": "What is the difference between row echelon form and reduced row echelon form?", "acceptedAnswer": {"@type": "Answer", "text": "In row echelon form each pivot sits to the right of the pivot above it. Reduced row echelon form additionally requires every pivot to be 1 and the only non-zero entry in its column. RREF is unique for every matrix."}},
+    {"@type": "Question", "name": "How does Gauss-Jordan elimination work?", "acceptedAnswer": {"@type": "Answer", "text": "Pick pivots left to right, zero out entries below each pivot, scale pivots to 1, then zero out entries above each pivot, using only row swaps, row scalings, and adding multiples of one row to another."}},
+    {"@type": "Question", "name": "Why does RowReduce use exact fractions instead of decimals?", "acceptedAnswer": {"@type": "Answer", "text": "Exact fractions keep every computation mathematically perfect: singular matrices are detected as exactly singular and inverses display clean fractions, with no floating-point rounding error."}},
+    {"@type": "Question", "name": "When does a matrix have no inverse?", "acceptedAnswer": {"@type": "Answer", "text": "A square matrix has no inverse exactly when its determinant is zero (singular), which shows up as a zero row in its reduced row echelon form."}},
+    {"@type": "Question", "name": "What does the rank of a matrix tell me?", "acceptedAnswer": {"@type": "Answer", "text": "The rank is the number of pivots: the count of linearly independent rows or columns, telling you the true dimensionality of the matrix and whether a linear system can have a unique solution."}}
+  ]
+}
+</script>
+
+<!-- Inlined pure-logic library (placeholder replaced at build time) -->
+<script id="rowreduce-matrix-calculator-lib">
+/* ============================================================
+ * RowReduce — Matrix Calculator with Steps (core logic)
+ * Pure functions only. No DOM / window / document / localStorage.
+ * Fractions are plain objects {n, d} (numerator, denominator),
+ * always kept normalized with d > 0 and gcd(|n|, d) = 1.
+ * ============================================================ */
+
+function gcd(a, b) {
+  a = Math.abs(a);
+  b = Math.abs(b);
+  while (b !== 0) {
+    var t = a % b;
+    a = b;
+    b = t;
+  }
+  return a === 0 ? 1 : a;
+}
+
+function frac(n, d) {
+  if (d === undefined || d === null) d = 1;
+  if (d === 0) throw new Error('frac: zero denominator');
+  if (d < 0) { n = -n; d = -d; }
+  var g = gcd(n, d);
+  return { n: n / g, d: d / g };
+}
+
+function fracAdd(a, b) { return frac(a.n * b.d + b.n * a.d, a.d * b.d); }
+function fracSub(a, b) { return frac(a.n * b.d - b.n * a.d, a.d * b.d); }
+function fracMul(a, b) { return frac(a.n * b.n, a.d * b.d); }
+function fracDiv(a, b) {
+  if (b.n === 0) throw new Error('fracDiv: division by zero');
+  return frac(a.n * b.d, a.d * b.n);
+}
+function fracNeg(a) { return { n: -a.n, d: a.d }; }
+function fracIsZero(a) { return a.n === 0; }
+function fracEquals(a, b) { return a.n === b.n && a.d === b.d; }
+
+function fracToString(a) {
+  if (a.d === 1) return String(a.n);
+  return a.n + '/' + a.d;
+}
+
+/* Parse "3", "-4", "3/4", "- 1/2", "0.5", "2.75" -> fraction object, or null. */
+function parseFraction(str) {
+  if (str === null || str === undefined) return null;
+  var s = String(str).trim().replace(/−/g, '-').replace(/\s+/g, '');
+  if (s === '') return null;
+  var m = s.match(/^(-?\d+)\/(-?\d+)$/);
+  if (m) {
+    var den = parseInt(m[2], 10);
+    if (den === 0) return null;
+    return frac(parseInt(m[1], 10), den);
+  }
+  m = s.match(/^(-?\d+)(\.(\d+))?$/);
+  if (m) {
+    var intPart = parseInt(m[1], 10);
+    if (!m[2]) return frac(intPart, 1);
+    var dec = m[3];
+    var pow = Math.pow(10, dec.length);
+    var num = intPart * pow + (intPart < 0 ? -parseInt(dec, 10) : parseInt(dec, 10));
+    return frac(num, pow);
+  }
+  return null;
+}
+
+/* ---------------- matrix helpers ---------------- */
+
+function matCopy(m) {
+  return m.map(function (row) {
+    return row.map(function (x) { return { n: x.n, d: x.d }; });
+  });
+}
+
+function matSwapRows(m, i, j) {
+  var t = m[i]; m[i] = m[j]; m[j] = t;
+}
+
+/* Human-readable coefficient for a row-operation label (absolute value). */
+function coefText(k) {
+  var abs = k.n < 0 ? fracNeg(k) : k;
+  var s = fracToString(abs);
+  return (abs.n === 1 && abs.d === 1) ? '' : s + '·';
+}
+
+/* Label for R_i <- R_i - k*R_j (k may be negative). Indices are 0-based. */
+function replaceOpText(i, j, k) {
+  var Ri = 'R' + (i + 1), Rj = 'R' + (j + 1);
+  var sign = k.n < 0 ? ' + ' : ' − ';
+  return Ri + ' → ' + Ri + sign + coefText(k) + Rj;
+}
+
+function swapOpText(i, j) {
+  return 'R' + (i + 1) + ' ↔ R' + (j + 1);
+}
+
+function scaleOpText(i, k) {
+  var Ri = 'R' + (i + 1);
+  var s = fracToString(k);
+  if (k.n < 0) return Ri + ' → −' + fracToString(fracNeg(k)) + '·' + Ri;
+  return Ri + ' → ' + s + '·' + Ri;
+}
+
+/* Canonical display string for an op object.
+ * NOTE: replace ops store the SIGNED addition multiplier k in
+ * "R_i <- R_i + k*R_j", while replaceOpText expects the elimination
+ * multiplier in "R_i <- R_i - k*R_j", so the sign must be flipped. */
+function rowOpToString(op) {
+  if (!op) return '';
+  if (op.type === 'swap') return swapOpText(op.i, op.j);
+  if (op.type === 'scale') return scaleOpText(op.i, op.k);
+  if (op.type === 'replace') return replaceOpText(op.i, op.j, fracNeg(op.k));
+  return '';
+}
+
+function pushStep(steps, m, text, op) {
+  steps.push({ matrix: matCopy(m), text: text, op: op || null });
+}
+
+/*
+ * Run the full Gauss-Jordan elimination on m IN PLACE, recording every
+ * elementary row operation as a step. Returns {steps, pivotCols}.
+ * Each step: {matrix, text, op} where op is
+ *   {type:'swap', i, j} | {type:'scale', i, k} | {type:'replace', i, j, k}
+ * with 0-based indices; replace means R_i <- R_i + k*R_j (k signed).
+ */
+function gaussJordanSteps(m) {
+  var rows = m.length, cols = m[0].length;
+  var steps = [];
+  var pivotCols = [];
+  pushStep(steps, m, 'Starting matrix', null);
+
+  var r = 0;
+  /* Phase 1 — forward elimination (below each pivot). */
+  for (var c = 0; c < cols && r < rows; c++) {
+    var p = -1;
+    for (var i = r; i < rows; i++) {
+      if (!fracIsZero(m[i][c])) { p = i; break; }
+    }
+    if (p < 0) continue;
+    if (p !== r) {
+      matSwapRows(m, p, r);
+      pushStep(steps, m, swapOpText(r, p), { type: 'swap', i: r, j: p, pivot: [r, c] });
+    }
+    pivotCols.push(c);
+    for (var i2 = r + 1; i2 < rows; i2++) {
+      if (fracIsZero(m[i2][c])) continue;
+      var k = fracDiv(m[i2][c], m[r][c]);
+      for (var j = c; j < cols; j++) {
+        m[i2][j] = fracSub(m[i2][j], fracMul(k, m[r][j]));
+      }
+      pushStep(steps, m, replaceOpText(i2, r, k),
+        { type: 'replace', i: i2, j: r, k: fracNeg(k), pivot: [r, c] });
+    }
+    r++;
+  }
+
+  /* Phase 2 — normalize every pivot row so the leading entry becomes 1. */
+  for (var pr = 0; pr < pivotCols.length; pr++) {
+    var pc = pivotCols[pr];
+    var pv = m[pr][pc];
+    if (!fracEquals(pv, frac(1, 1))) {
+      var inv = fracDiv(frac(1, 1), pv);
+      for (var j2 = pc; j2 < cols; j2++) {
+        m[pr][j2] = fracMul(m[pr][j2], inv);
+      }
+      pushStep(steps, m, scaleOpText(pr, inv), { type: 'scale', i: pr, k: inv, pivot: [pr, pc] });
+    }
+  }
+
+  /* Phase 3 — backward elimination (above each pivot). */
+  for (var pr2 = pivotCols.length - 1; pr2 >= 0; pr2--) {
+    var pc2 = pivotCols[pr2];
+    for (var i3 = 0; i3 < pr2; i3++) {
+      if (fracIsZero(m[i3][pc2])) continue;
+      var k2 = m[i3][pc2]; /* pivot is exactly 1 now */
+      for (var j3 = pc2; j3 < cols; j3++) {
+        m[i3][j3] = fracSub(m[i3][j3], fracMul(k2, m[pr2][j3]));
+      }
+      pushStep(steps, m, replaceOpText(i3, pr2, k2),
+        { type: 'replace', i: i3, j: pr2, k: fracNeg(k2), pivot: [pr2, pc2] });
+    }
+  }
+
+  pushStep(steps, m, 'Reduced row echelon form ✓', null);
+  return { steps: steps, pivotCols: pivotCols };
+}
+
+/* Exact determinant via fraction-based forward elimination. null if not square. */
+function determinantOf(mat) {
+  if (!mat.length || mat.length !== mat[0].length) return null;
+  var m = matCopy(mat);
+  var n = m.length;
+  var swaps = 0;
+  for (var c = 0; c < n; c++) {
+    var p = -1;
+    for (var i = c; i < n; i++) {
+      if (!fracIsZero(m[i][c])) { p = i; break; }
+    }
+    if (p < 0) return frac(0, 1);
+    if (p !== c) { matSwapRows(m, p, c); swaps++; }
+    for (var i2 = c + 1; i2 < n; i2++) {
+      if (fracIsZero(m[i2][c])) continue;
+      var k = fracDiv(m[i2][c], m[c][c]);
+      for (var j = c; j < n; j++) {
+        m[i2][j] = fracSub(m[i2][j], fracMul(k, m[c][j]));
+      }
+    }
+  }
+  var d = frac(1, 1);
+  for (var i3 = 0; i3 < n; i3++) d = fracMul(d, m[i3][i3]);
+  if (swaps % 2 === 1) d = fracNeg(d);
+  return d;
+}
+
+/*
+ * Full solve: RREF + steps + rank + determinant.
+ * mat: array of arrays of fraction objects.
+ */
+function gaussJordan(mat) {
+  var m = matCopy(mat);
+  var res = gaussJordanSteps(m);
+  var det = determinantOf(mat);
+  return {
+    rref: m,
+    steps: res.steps,
+    rank: res.pivotCols.length,
+    determinant: det
+  };
+}
+
+/*
+ * Inverse via Gauss-Jordan on the augmented matrix [A | I].
+ * Returns {inverse, steps, error}. inverse is null when not invertible.
+ */
+function invertMatrix(mat) {
+  var n = mat.length;
+  if (!n || mat[0].length !== n) {
+    return { inverse: null, steps: [], error: 'Matrix must be square to have an inverse.' };
+  }
+  var aug = mat.map(function (row, i) {
+    var nr = row.map(function (x) { return { n: x.n, d: x.d }; });
+    for (var j = 0; j < n; j++) nr.push(frac(i === j ? 1 : 0, 1));
+    return nr;
+  });
+  var res = gaussJordanSteps(aug);
+  for (var i = 0; i < n; i++) {
+    for (var j = 0; j < n; j++) {
+      if (!fracEquals(aug[i][j], frac(i === j ? 1 : 0, 1))) {
+        return { inverse: null, steps: res.steps, error: 'This matrix is singular (determinant 0) — it has no inverse.' };
+      }
+    }
+  }
+  var inv = aug.map(function (row) { return row.slice(n); });
+  return { inverse: inv, steps: res.steps, error: null };
+}
+
+/* ---------------- row-operation parsing (practice mode) ---------------- */
+
+/*
+ * parseRowOp("R2 -> R2 - 2*R1") ->
+ *   {type:'replace', i:1, j:0, k:{n:-2,d:1}}   meaning R2 <- R2 + k*R1
+ * parseRowOp("R1 <-> R3") -> {type:'swap', i:0, j:2}
+ * parseRowOp("R1 -> (1/2)*R1") -> {type:'scale', i:0, k:{n:1,d:2}}
+ * Returns null when the text cannot be parsed.
+ * Accepts unicode arrows (→ ↔), middle dots (·), unicode minus (−).
+ */
+function parseRowOp(str) {
+  if (str === null || str === undefined) return null;
+  var s = String(str).trim().toLowerCase()
+    .replace(/→/g, '->').replace(/↔/g, '<->')
+    .replace(/−/g, '-').replace(/·/g, '*')
+    .replace(/\s+/g, '');
+  if (s === '') return null;
+
+  var m = s.match(/^r(\d+)<->r(\d+)$/);
+  if (m) {
+    var a = parseInt(m[1], 10) - 1, b = parseInt(m[2], 10) - 1;
+    if (a < 0 || b < 0 || a === b) return null;
+    return { type: 'swap', i: a, j: b };
+  }
+  m = s.match(/^swapr(\d+)r(\d+)$/);
+  if (m) {
+    var a2 = parseInt(m[1], 10) - 1, b2 = parseInt(m[2], 10) - 1;
+    if (a2 < 0 || b2 < 0 || a2 === b2) return null;
+    return { type: 'swap', i: a2, j: b2 };
+  }
+  /* replace: r2->r2-2*r1  or  r2->r2+1/2*r1  or  r2->r2-r1 */
+  m = s.match(/^r(\d+)->r(\d+)([+-])(.*?)r(\d+)$/);
+  if (m) {
+    var t = parseInt(m[1], 10) - 1;
+    var t2 = parseInt(m[2], 10) - 1;
+    var src = parseInt(m[5], 10) - 1;
+    if (t < 0 || t2 < 0 || src < 0 || t !== t2 || t === src) return null;
+    var coefStr = m[4].replace(/\*$/, '').replace(/^\(/, '').replace(/\)$/, '');
+    var coef = coefStr === '' ? frac(1, 1) : parseFraction(coefStr);
+    if (!coef) return null;
+    var k = m[3] === '-' ? fracNeg(coef) : coef;
+    return { type: 'replace', i: t, j: src, k: k };
+  }
+  /* scale: r1->(1/2)*r1  or  r2->2*r2 */
+  m = s.match(/^r(\d+)->(.+)\*r(\d+)$/);
+  if (m) {
+    var si = parseInt(m[1], 10) - 1;
+    var si2 = parseInt(m[3], 10) - 1;
+    if (si < 0 || si !== si2) return null;
+    var ks = m[2].replace(/^\(/, '').replace(/\)$/, '');
+    if (/r/.test(ks)) return null;
+    var kk = parseFraction(ks);
+    if (!kk || fracIsZero(kk)) return null;
+    return { type: 'scale', i: si, k: kk };
+  }
+  return null;
+}
+
+/* Apply a parsed op to a matrix (returns a NEW matrix). Throws on bad input. */
+function applyOp(mat, op) {
+  if (!op) throw new Error('applyOp: null op');
+  var m = matCopy(mat);
+  var rows = m.length;
+  function checkRow(i) {
+    if (i < 0 || i >= rows) throw new Error('applyOp: row R' + (i + 1) + ' out of range');
+  }
+  if (op.type === 'swap') {
+    checkRow(op.i); checkRow(op.j);
+    matSwapRows(m, op.i, op.j);
+    return m;
+  }
+  if (op.type === 'scale') {
+    checkRow(op.i);
+    for (var j = 0; j < m[0].length; j++) m[op.i][j] = fracMul(m[op.i][j], op.k);
+    return m;
+  }
+  if (op.type === 'replace') {
+    checkRow(op.i); checkRow(op.j);
+    for (var j2 = 0; j2 < m[0].length; j2++) {
+      m[op.i][j2] = fracAdd(m[op.i][j2], fracMul(op.k, m[op.j][j2]));
+    }
+    return m;
+  }
+  throw new Error('applyOp: unknown op type');
+}
+
+/* True when the user's op matches the expected op (fractions compared exactly). */
+function validateOp(expected, actual) {
+  if (!expected || !actual || expected.type !== actual.type) return false;
+  if (expected.type === 'swap') {
+    return (expected.i === actual.i && expected.j === actual.j) ||
+           (expected.i === actual.j && expected.j === actual.i);
+  }
+  if (expected.type === 'scale') {
+    return expected.i === actual.i && fracEquals(expected.k, actual.k);
+  }
+  if (expected.type === 'replace') {
+    return expected.i === actual.i && expected.j === actual.j &&
+           fracEquals(expected.k, actual.k);
+  }
+  return false;
+}
+
+/*
+ * suggestHint(state, expectedOp) -> [hint1, hint2]
+ * state: {pivotRow, pivotCol} (0-based) of the pivot being used.
+ * hint1 mentions the pivot; hint2 reveals the exact operation.
+ */
+function suggestHint(state, expectedOp) {
+  var pr = state.pivotRow, pc = state.pivotCol;
+  var h1, h2 = 'Try: ' + rowOpToString(expectedOp);
+  if (!expectedOp) return ['No hint available.', ''];
+  if (expectedOp.type === 'swap') {
+    h1 = 'The pivot position at row ' + (pr + 1) + ', column ' + (pc + 1) +
+      ' is zero. Swap in a lower row that has a non-zero entry in that column.';
+  } else if (expectedOp.type === 'scale') {
+    h1 = 'The pivot in row ' + (pr + 1) + ' (column ' + (pc + 1) +
+      ') is not 1 yet. Scale row ' + (pr + 1) + ' so its leading entry becomes exactly 1.';
+  } else {
+    var dir = expectedOp.i > expectedOp.j ? 'below' : 'above';
+    h1 = 'Use the pivot in row ' + (pr + 1) + ' (column ' + (pc + 1) +
+      ') to eliminate the entry ' + dir + ' it, in row ' + (expectedOp.i + 1) + '.';
+  }
+  return [h1, h2];
+}
+
+/*
+ * randomProblem(n, rng) -> n×n matrix of fraction objects with integer
+ * entries and a non-zero determinant (always "solvable"). rng defaults
+ * to Math.random; pass a seeded function for deterministic tests.
+ */
+function randomProblem(n, rng) {
+  var r = rng || Math.random;
+  function pick() {
+    var v = Math.floor(r() * 11) - 5; /* -5..5 */
+    if (v === 0 && r() < 0.7) v = Math.floor(r() * 9) + 1; /* fewer zeros */
+    return v;
+  }
+  for (var attempt = 0; attempt < 200; attempt++) {
+    var m = [];
+    for (var i = 0; i < n; i++) {
+      var row = [];
+      for (var j = 0; j < n; j++) row.push(frac(pick(), 1));
+      m.push(row);
+    }
+    var d = determinantOf(m);
+    if (!fracIsZero(d)) return m;
+  }
+  /* fallback: identity-ish, guaranteed non-singular */
+  var f = [];
+  for (var i2 = 0; i2 < n; i2++) {
+    var row2 = [];
+    for (var j2 = 0; j2 < n; j2++) row2.push(frac(i2 === j2 ? 2 : 1, 1));
+    f.push(row2);
+  }
+  return f;
+}
+
+</script>
+
+<script>
+(function () {
+  'use strict';
+  var gridSize = 3;
+  var mode = 'rref';
+  var LS_KEY = 'rowreduce-matrix-v1';
+
+  var grid = document.getElementById('grid');
+  var inputError = document.getElementById('inputError');
+  var results = document.getElementById('results');
+  var resultsTitle = document.getElementById('resultsTitle');
+  var stepsList = document.getElementById('stepsList');
+  var finalCards = document.getElementById('finalCards');
+  var practicePanel = document.getElementById('practicePanel');
+
+  /* ---------- input grid ---------- */
+  function buildGrid(n) {
+    gridSize = n;
+    grid.style.gridTemplateColumns = 'repeat(' + n + ', auto)';
+    grid.innerHTML = '';
+    var saved = null;
+    try { saved = JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch (e) {}
+    for (var i = 0; i < n; i++) {
+      for (var j = 0; j < n; j++) {
+        var inp = document.createElement('input');
+        inp.className = 'cell-input';
+        inp.setAttribute('inputmode', 'text');
+        inp.setAttribute('aria-label', 'Row ' + (i + 1) + ' column ' + (j + 1));
+        inp.placeholder = '0';
+        if (saved && saved.n === n && saved.v[i] && saved.v[i][j] !== undefined) inp.value = saved.v[i][j];
+        grid.appendChild(inp);
+      }
+    }
+    document.querySelectorAll('.size-btn').forEach(function (b) {
+      var on = parseInt(b.getAttribute('data-size'), 10) === n;
+      b.className = 'size-btn text-sm font-bold px-3 py-1.5 rounded-lg border-2 ' +
+        (on ? 'border-[#1D4ED8] bg-[#1D4ED8] text-white' : 'border-slate-300 text-slate-500');
+    });
+  }
+
+  function readMatrix() {
+    var inputs = grid.querySelectorAll('.cell-input');
+    var m = [], raw = [];
+    var bad = null;
+    for (var i = 0; i < gridSize; i++) {
+      var row = [], rraw = [];
+      for (var j = 0; j < gridSize; j++) {
+        var v = inputs[i * gridSize + j].value;
+        rraw.push(v);
+        var f = parseFraction(v === '' ? '0' : v);
+        if (!f) { bad = 'R' + (i + 1) + 'C' + (j + 1); break; }
+        row.push(f);
+      }
+      if (bad) break;
+      m.push(row); raw.push(rraw);
+    }
+    if (bad) {
+      inputError.textContent = 'Hmm, "' + inputs[0].value + '"… cell ' + bad + ' is not a valid number. Use numbers or fractions like 3/4, -2, 0.5.';
+      inputError.classList.remove('hidden');
+      return null;
+    }
+    inputError.classList.add('hidden');
+    try { localStorage.setItem(LS_KEY, JSON.stringify({ n: gridSize, v: raw })); } catch (e) {}
+    return m;
+  }
+
+  /* ---------- rendering ---------- */
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+  function renderFrac(f) {
+    if (f.d === 1) return esc(String(f.n));
+    return '<span class="frac"><span>' + esc(String(f.n)) + '</span><span>' + esc(String(f.d)) + '</span></span>';
+  }
+
+  function renderMatrix(mat) {
+    var h = '<div class="matrix-wrap"><table><tbody>';
+    for (var i = 0; i < mat.length; i++) {
+      h += '<tr>';
+      for (var j = 0; j < mat[i].length; j++) h += '<td>' + renderFrac(mat[i][j]) + '</td>';
+      h += '</tr>';
+    }
+    return h + '</tbody></table></div>';
+  }
+
+  function renderSteps(steps) {
+    var h = '';
+    for (var s = 0; s < steps.length; s++) {
+      var st = steps[s];
+      var label = s === 0 ? 'Start' : (s === steps.length - 1 ? 'Done ✓' : 'Step ' + s);
+      h += '<div class="notebook-step p-4 sm:p-5">' +
+        '<div class="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-3">' +
+        '<span class="text-xs font-extrabold uppercase tracking-widest text-slate-400">' + esc(label) + '</span>' +
+        '<span class="hand text-2xl text-[#1D4ED8]">' + esc(st.text) + '</span>' +
+        '</div><div class="overflow-x-auto">' + renderMatrix(st.matrix) + '</div></div>';
+    }
+    return h;
+  }
+
+  function card(title, valueHtml, accent) {
+    return '<div class="rounded-xl border-2 p-4 text-center" style="border-color:' + accent + '22;background:#fff">' +
+      '<p class="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-1">' + esc(title) + '</p>' +
+      '<div class="text-lg font-bold" style="color:' + accent + '">' + valueHtml + '</div></div>';
+  }
+
+  function showResults(title, steps, cards) {
+    resultsTitle.textContent = title;
+    stepsList.innerHTML = renderSteps(steps);
+    finalCards.innerHTML = cards || '';
+    results.classList.remove('hidden');
+    practicePanel.classList.add('hidden');
+    results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  /* ---------- modes ---------- */
+  document.querySelectorAll('.tab-btn').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('.tab-btn').forEach(function (x) { x.classList.remove('active'); });
+      b.classList.add('active');
+      mode = b.getAttribute('data-mode');
+      document.getElementById('solveBtn').textContent = mode === 'practice' ? 'Start practice ✏️' : 'Solve with steps →';
+      results.classList.add('hidden');
+      practicePanel.classList.toggle('hidden', mode !== 'practice');
+      if (mode === 'practice') practicePanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+
+  document.querySelectorAll('.size-btn').forEach(function (b) {
+    b.addEventListener('click', function () { buildGrid(parseInt(b.getAttribute('data-size'), 10)); });
+  });
+
+  document.getElementById('clearBtn').addEventListener('click', function () {
+    grid.querySelectorAll('.cell-input').forEach(function (i) { i.value = ''; });
+    try { localStorage.removeItem(LS_KEY); } catch (e) {}
+  });
+
+  document.getElementById('randomBtn').addEventListener('click', function () {
+    var m = randomProblem(gridSize);
+    var inputs = grid.querySelectorAll('.cell-input');
+    for (var i = 0; i < gridSize; i++)
+      for (var j = 0; j < gridSize; j++)
+        inputs[i * gridSize + j].value = fracToString(m[i][j]);
+    inputError.classList.add('hidden');
+  });
+
+  document.getElementById('copyBtn').addEventListener('click', function () {
+    var txt = resultsTitle.textContent + '\n\n';
+    stepsList.querySelectorAll('.notebook-step').forEach(function (el, idx) {
+      txt += '--- step ' + idx + ' ---\n' + el.innerText + '\n\n';
+    });
+    if (navigator.clipboard) navigator.clipboard.writeText(txt);
+  });
+
+  /* ---------- practice mode ---------- */
+  var pOps = [], pIdx = 0, pMat = null, pScore = 0, pFirstTry = true, pHintLevel = 0;
+
+  function pSetFeedback(msg, ok) {
+    var f = document.getElementById('pFeedback');
+    f.textContent = msg;
+    f.className = 'text-center text-sm font-semibold mt-3 min-h-[1.5rem] ' + (ok === true ? 'text-emerald-600' : ok === false ? 'text-[#DC2626]' : 'text-slate-500');
+  }
+
+  function startPractice() {
+    var m = readMatrix();
+    if (!m) return;
+    var res = gaussJordan(m);
+    pOps = res.steps.filter(function (s) { return s.op; });
+    pMat = matCopy(m);
+    pIdx = 0; pScore = 0; pFirstTry = true; pHintLevel = 0;
+    document.getElementById('pTotal').textContent = pOps.length;
+    document.getElementById('pDone').classList.add('hidden');
+    document.getElementById('pControls').classList.remove('hidden');
+    updatePractice();
+    results.classList.add('hidden');
+    practicePanel.classList.remove('hidden');
+    practicePanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function updatePractice() {
+    document.getElementById('pScore').textContent = pScore;
+    document.getElementById('pStep').textContent = Math.min(pIdx + 1, pOps.length);
+    document.getElementById('pMatrix').innerHTML = renderMatrix(pMat);
+    document.getElementById('pHintBox').classList.add('hidden');
+    pHintLevel = 0; pFirstTry = true;
+    var inp = document.getElementById('pInput');
+    inp.value = '';
+    inp.focus();
+    if (pIdx === 0) pSetFeedback('Your turn! What is the first row operation?', null);
+  }
+
+  function practiceApply() {
+    if (pIdx >= pOps.length) return;
+    var raw = document.getElementById('pInput').value;
+    var parsed = parseRowOp(raw);
+    if (!parsed) {
+      pSetFeedback('I could not parse that. Try e.g.  R2 -> R2 - 2*R1  or  R1 <-> R3', false);
+      return;
+    }
+    var expected = pOps[pIdx];
+    if (validateOp(expected, parsed)) {
+      pMat = applyOp(pMat, parsed);
+      if (pFirstTry) pScore++;
+      pIdx++;
+      if (pIdx >= pOps.length) {
+        document.getElementById('pMatrix').innerHTML = renderMatrix(pMat);
+        document.getElementById('pDone').classList.remove('hidden');
+        document.getElementById('pControls').classList.add('hidden');
+        document.getElementById('pDoneScore').textContent = 'Final score: ' + pScore + ' / ' + pOps.length + ' first-try correct.';
+        pSetFeedback('', null);
+      } else {
+        pSetFeedback('Correct! ' + rowOpToString(parsed) + ' ✓', true);
+        setTimeout(updatePractice, 700);
+      }
+    } else {
+      pFirstTry = false;
+      pSetFeedback('Not quite — that operation does not match. Hit 💡 Hint if you are stuck.', false);
+    }
+  }
+
+  document.getElementById('pApply').addEventListener('click', practiceApply);
+  document.getElementById('pInput').addEventListener('keydown', function (e) { if (e.key === 'Enter') practiceApply(); });
+  document.getElementById('pHint').addEventListener('click', function () {
+    if (pIdx >= pOps.length) return;
+    var expected = pOps[pIdx];
+    var state = expected.pivot ? { pivotRow: expected.pivot[0], pivotCol: expected.pivot[1] } : { pivotRow: 0, pivotCol: 0 };
+    var hints = suggestHint(state, expected);
+    pHintLevel = Math.min(pHintLevel + 1, hints.length);
+    document.getElementById('pHintText').textContent = hints[pHintLevel - 1];
+    document.getElementById('pHintBox').classList.remove('hidden');
+    pFirstTry = false;
+  });
+  document.getElementById('pReveal').addEventListener('click', function () {
+    if (pIdx >= pOps.length) return;
+    document.getElementById('pInput').value = rowOpToString(pOps[pIdx]).replace(/→/g, '->').replace(/↔/g, '<->').replace(/−/g, '-').replace(/·/g, '*');
+    pFirstTry = false;
+  });
+  document.getElementById('pAgain').addEventListener('click', function () {
+    document.getElementById('randomBtn').click();
+    startPractice();
+  });
+
+  /* ---------- solve ---------- */
+  document.getElementById('solveBtn').addEventListener('click', function () {
+    if (mode === 'practice') { startPractice(); return; }
+    var m = readMatrix();
+    if (!m) return;
+    if (mode === 'rref') {
+      var res = gaussJordan(m);
+      var cards = card('Determinant', renderFrac(res.determinant), '#1D4ED8') +
+        card('Rank', String(res.rank), '#DC2626') +
+        card('Pivots', String(res.rank) + ' of ' + gridSize, '#059669');
+      showResults('Gauss-Jordan elimination, step by step', res.steps, cards);
+    } else if (mode === 'inverse') {
+      var inv = invertMatrix(m);
+      if (inv.error) {
+        showResults('Inverse via [A | I]', inv.steps,
+          card('Inverse', '<span class="text-sm">—</span>', '#DC2626') +
+          '<div class="sm:col-span-2 rounded-xl border-2 border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">' + esc(inv.error) + '</div>');
+      } else {
+        showResults('Inverse via augmented matrix [A | I]', inv.steps,
+          card('Determinant', renderFrac(determinantOf(m)), '#1D4ED8') +
+          card('A⁻¹ found', '✓ invertible', '#059669') +
+          card('Check', 'A·A⁻¹ = I', '#7c3aed'));
+      }
+    } else if (mode === 'detrank') {
+      var r2 = gaussJordan(m);
+      showResults('Determinant & rank — exact fractions', r2.steps,
+        card('Determinant', '<span class="text-2xl">' + renderFrac(r2.determinant) + '</span>', '#1D4ED8') +
+        card('Rank', '<span class="text-2xl">' + r2.rank + '</span>', '#DC2626') +
+        card('Invertible?', r2.determinant.n === 0 ? 'No (singular)' : 'Yes ✓', '#059669'));
+    }
+  });
+
+  buildGrid(3);
+})();
+</script>
+</body>
+</html>
